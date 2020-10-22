@@ -7,7 +7,9 @@ import (
 	"github.com/didil/kubexcloud/kxc-api/requests"
 
 	cloudv1alpha1 "github.com/didil/kubexcloud/kxc-operator/api/v1alpha1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 type ProjectSvc interface {
@@ -33,20 +35,27 @@ func (svc *ProjectService) validateProject(reqData *requests.CreateProject) erro
 }
 
 func (svc *ProjectService) Create(ctx context.Context, reqData *requests.CreateProject) error {
-	clientset := svc.k8sSvc.Clientset()
+	client := svc.k8sSvc.Client()
 
 	err := svc.validateProject(reqData)
 	if err != nil {
 		return fmt.Errorf("project invalid: %v", err)
 	}
 
-	namespace := &cloudv1alpha1.Project{
+	proj := &cloudv1alpha1.Project{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: reqData.Name,
 		},
 	}
 
-	_, err = clientset.r.CoreV1().Namespaces().Create(ctx, namespace, metav1.CreateOptions{})
+	err = client.Get(ctx, types.NamespacedName{Name: proj.Name}, &cloudv1alpha1.Project{})
+	if err == nil {
+		return fmt.Errorf("project already exists: %v", proj.Name)
+	} else if err != nil && !errors.IsNotFound(err) {
+		return fmt.Errorf("get project: %v", err)
+	}
+
+	err = client.Create(ctx, proj)
 	if err != nil {
 		return fmt.Errorf("create project: %v", err)
 	}

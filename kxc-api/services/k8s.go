@@ -5,65 +5,84 @@ import (
 	"os"
 	"path/filepath"
 
-	"k8s.io/client-go/kubernetes"
+	cloudv1alpha1 "github.com/didil/kubexcloud/kxc-operator/api/v1alpha1"
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type K8sSvc interface {
-	Clientset() *kubernetes.Clientset
+	Client() client.Client
 }
 
 type K8sService struct {
-	clientset *kubernetes.Clientset
+	client client.Client
 }
 
 func NewK8sService() (*K8sService, error) {
 	svc := &K8sService{}
-	clientset, err := svc.initK8sClientSet()
+
+	// init runtime scheme
+	scheme := runtime.NewScheme()
+	// add k8s scheme
+	err := clientgoscheme.AddToScheme(scheme)
 	if err != nil {
-		return nil, fmt.Errorf("initK8sClientSet: %v", err)
+		return nil, fmt.Errorf("clientgoscheme: %v", err)
+	}
+	// add crd schemes
+	err = cloudv1alpha1.AddToScheme(scheme)
+	if err != nil {
+		return nil, fmt.Errorf("cloudv1alpha1: %v", err)
 	}
 
-	svc.clientset = clientset
+	client, err := svc.initK8sClient(scheme)
+	if err != nil {
+		return nil, fmt.Errorf("initK8sClient: %v", err)
+	}
+
+	svc.client = client
 
 	return svc, nil
 }
 
-func (svc *K8sService) initK8sClientSet() (*kubernetes.Clientset, error) {
-	clientset, err := svc.initInClusterK8sClientSet()
-	if err != rest.ErrNotInCluster && err != nil {
-		return nil, err
-	}
-	if err == nil {
-		// ok
-		return clientset, nil
-	}
-
-	clientset, err = svc.initOutOfClusterK8sClientSet()
+func (svc *K8sService) initK8sClient(scheme *runtime.Scheme) (client.Client, error) {
+	config, err := svc.getInClusterConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	return clientset, nil
+	if config == nil {
+		config, err = svc.getOutOfClusterConfig()
+		if err != nil {
+			return nil, err
+		}
+
+	}
+
+	client, err := client.New(config, client.Options{Scheme: scheme})
+	if err != nil {
+		return nil, err
+	}
+
+	return client, nil
 }
 
-func (svc *K8sService) initInClusterK8sClientSet() (*kubernetes.Clientset, error) {
+func (svc *K8sService) getInClusterConfig() (*rest.Config, error) {
 	config, err := rest.InClusterConfig()
+	if err == rest.ErrNotInCluster {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, err
 	}
 
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-
-	return clientset, nil
+	return config, nil
 }
 
-func (svc *K8sService) initOutOfClusterK8sClientSet() (*kubernetes.Clientset, error) {
+func (svc *K8sService) getOutOfClusterConfig() (*rest.Config, error) {
 	var kubeconfig string
 	if kubeconfigenv := os.Getenv("KUBECONFIG"); kubeconfigenv != "" {
 		kubeconfig = kubeconfigenv
@@ -81,15 +100,9 @@ func (svc *K8sService) initOutOfClusterK8sClientSet() (*kubernetes.Clientset, er
 		return nil, err
 	}
 
-	// create the clientset
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-
-	return clientset, nil
+	return config, nil
 }
 
-func (svc *K8sService) Clientset() *kubernetes.Clientset {
-	return svc.clientset
+func (svc *K8sService) Client() client.Client {
+	return svc.client
 }
