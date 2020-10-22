@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/didil/kubexcloud/kxc-api/requests"
 
@@ -10,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	validationutils "k8s.io/apimachinery/pkg/util/validation"
 )
 
 type ProjectSvc interface {
@@ -28,7 +30,11 @@ func NewProjectService(k8sSvc K8sSvc) *ProjectService {
 
 func (svc *ProjectService) validateProject(reqData *requests.CreateProject) error {
 	if reqData.Name == "" {
-		return fmt.Errorf("project name is required")
+		return fmt.Errorf("name is required")
+	}
+
+	if errs := validationutils.IsDNS1123Label(reqData.Name); len(errs) > 0 {
+		return fmt.Errorf("name: %s", strings.Join(errs, "."))
 	}
 
 	return nil

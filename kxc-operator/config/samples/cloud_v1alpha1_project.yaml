@@ -1,4 +1,4 @@
 apiVersion: cloud.kubexcloud.com/v1alpha1
 kind: Project
 metadata:
-  name: topsecret
+  name: sample

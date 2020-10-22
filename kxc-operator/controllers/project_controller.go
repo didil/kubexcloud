@@ -94,12 +94,12 @@ func (r *ProjectReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 // namespaceForProject returns a Namespace object
 func (r *ProjectReconciler) namespaceForProject(project *cloudv1alpha1.Project) (*corev1.Namespace, error) {
-	ls := labelsForProject(project.Name)
+	labels := LabelsForNamespace(project.Name)
 
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   ProjectNamespaceName(project.Name),
-			Labels: ls,
+			Labels: labels,
 		},
 	}
 	// Set Project instance as the owner and controller
@@ -118,11 +118,12 @@ func ProjectNamespaceName(projectName string) string {
 	return projectNamespacePrefix + projectName
 }
 
-// labelsForProject returns the labels for selecting the resources
-// belonging to the given project CR name.
-func labelsForProject(name string) map[string]string {
-	return map[string]string{"app": "kxc_project", "kxc_project_cr": name}
+// LabelsForNamespace returns the labels for a namespace
+func LabelsForNamespace(projectName string) map[string]string {
+	return map[string]string{"app": "kxc", projectCRKey: projectName}
 }
+
+const projectCRKey = "project_cr"
 
 func (r *ProjectReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).

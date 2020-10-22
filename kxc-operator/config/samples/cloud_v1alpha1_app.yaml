@@ -1,0 +1,22 @@
+apiVersion: cloud.kubexcloud.com/v1alpha1
+kind: App
+metadata:
+  name: app-sample
+  labels: 
+    app: app-sample
+    project_cr: sample
+spec:
+  replicas: 3
+  containers: 
+    - image: hashicorp/http-echo
+      name: http-1
+      command: ["/http-echo","-listen=:8080", "-text='hello world 1'"]
+      ports:
+        - number: 8080
+          protocol: TCP
+    - image: hashicorp/http-echo
+      name: http-2
+      command: ["/http-echo","-listen=:9010", "-text='hello world 2'"]
+      ports:
+        - number: 9010
+          protocol: TCP

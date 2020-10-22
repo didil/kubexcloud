@@ -1,0 +1,113 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.5
+  creationTimestamp: null
+  name: apps.cloud.kubexcloud.com
+spec:
+  additionalPrinterColumns:
+  - JSONPath: .status.availableReplicas
+    name: AvailableReplicas
+    type: integer
+  - JSONPath: .status.unavailableReplicas
+    name: UnavailableReplicas
+    type: integer
+  group: cloud.kubexcloud.com
+  names:
+    kind: App
+    listKind: AppList
+    plural: apps
+    singular: app
+  scope: Cluster
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      description: App is the Schema for the apps API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: AppSpec defines the desired state of App
+          properties:
+            containers:
+              items:
+                description: Container object
+                properties:
+                  command:
+                    items:
+                      type: string
+                    type: array
+                  image:
+                    type: string
+                  name:
+                    type: string
+                  ports:
+                    items:
+                      description: Port object
+                      properties:
+                        number:
+                          format: int32
+                          minimum: 1
+                          type: integer
+                        protocol:
+                          description: Protocol defines network protocols supported
+                            for things like container ports.
+                          enum:
+                          - TCP
+                          - UDP
+                          type: string
+                      required:
+                      - number
+                      - protocol
+                      type: object
+                    type: array
+                required:
+                - image
+                - name
+                type: object
+              minItems: 1
+              type: array
+            replicas:
+              format: int32
+              minimum: 0
+              type: integer
+          required:
+          - containers
+          - replicas
+          type: object
+        status:
+          description: AppStatus defines the observed state of App
+          properties:
+            availableReplicas:
+              format: int32
+              type: integer
+            unavailableReplicas:
+              format: int32
+              type: integer
+          type: object
+      type: object
+  version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
