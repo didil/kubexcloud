@@ -24,14 +24,16 @@ func StartServer() error {
 	}
 
 	projectSvc := services.NewProjectService(k8sSvc)
+	appSvc := services.NewAppService(k8sSvc)
 
-	app := &handlers.App{
+	root := &handlers.Root{
 		ProjectSvc: projectSvc,
+		AppSvc:     appSvc,
 	}
 
 	log.Printf("Initializing router ...\n")
 
-	mux := BuildRouter(app)
+	mux := BuildRouter(root)
 
 	fmt.Printf("Listening on port %s\n", port)
 

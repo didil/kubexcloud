@@ -290,7 +290,7 @@ func (r *AppReconciler) deploymentForApp(app *cloudv1alpha1.App) (*appsv1.Deploy
 	}
 	dep.Spec.Template.Spec.Containers = containers
 
-	// Set Memcached instance as the owner and controller
+	// Set app instance as the owner and controller
 	err := ctrl.SetControllerReference(app, dep, r.Scheme)
 	if err != nil {
 		return nil, err
@@ -338,7 +338,7 @@ func (r *AppReconciler) serviceForApp(app *cloudv1alpha1.App) (*corev1.Service, 
 		}
 	}
 
-	// Set Memcached instance as the owner and controller
+	// Set app instance as the owner and controller
 	err := ctrl.SetControllerReference(app, svc, r.Scheme)
 	if err != nil {
 		return nil, err

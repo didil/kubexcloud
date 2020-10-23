@@ -16,6 +16,7 @@ import (
 
 type ProjectSvc interface {
 	Create(ctx context.Context, reqData *requests.CreateProject) error
+	Get(ctx context.Context, projectName string) (*cloudv1alpha1.Project, error)
 }
 
 type ProjectService struct {
@@ -66,4 +67,16 @@ func (svc *ProjectService) Create(ctx context.Context, reqData *requests.CreateP
 		return fmt.Errorf("create project: %v", err)
 	}
 	return nil
+}
+
+func (svc *ProjectService) Get(ctx context.Context, projectName string) (*cloudv1alpha1.Project, error) {
+	client := svc.k8sSvc.Client()
+
+	proj := &cloudv1alpha1.Project{}
+	err := client.Get(ctx, types.NamespacedName{Name: projectName}, proj)
+	if err != nil {
+		return nil, fmt.Errorf("get project: %v", err)
+	}
+
+	return proj, nil
 }

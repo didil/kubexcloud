@@ -7,18 +7,18 @@ import (
 )
 
 // HandleCreateProject creates a project
-func (app *App) HandleCreateProject(w http.ResponseWriter, r *http.Request) {
+func (root *Root) HandleCreateProject(w http.ResponseWriter, r *http.Request) {
 	reqData := &requests.CreateProject{}
 
 	err := readJSON(r, reqData)
 	if err != nil {
-		app.HandleError(w, r, err)
+		root.HandleError(w, r, err)
 		return
 	}
 
-	err = app.ProjectSvc.Create(r.Context(), reqData)
+	err = root.ProjectSvc.Create(r.Context(), reqData)
 	if err != nil {
-		app.HandleError(w, r, err)
+		root.HandleError(w, r, err)
 		return
 	}
 

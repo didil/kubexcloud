@@ -8,7 +8,7 @@ import (
 )
 
 // BuildRouter builds the router
-func BuildRouter(app *handlers.App) *chi.Mux {
+func BuildRouter(root *handlers.Root) *chi.Mux {
 	mux := chi.NewRouter()
 
 	mux.Use(mid.Cors)
@@ -24,7 +24,10 @@ func BuildRouter(app *handlers.App) *chi.Mux {
 	mux.Route("/v1", func(r chi.Router) {
 		r.Route("/projects", func(r chi.Router) {
 			// POST /projects
-			r.Post("/", app.HandleCreateProject)
+			r.Post("/", root.HandleCreateProject)
+
+			// POST /:project/apps
+			r.Post("/{project}/apps", root.HandleCreateApp)
 		})
 	})
 
