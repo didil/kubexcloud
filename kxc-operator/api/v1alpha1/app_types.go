@@ -55,16 +55,21 @@ type Port struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Enum=TCP;UDP
 	Protocol corev1.Protocol `json:"protocol"`
+
+	// only valid for http (through TCP protocol)
+	ExposeExternally bool `json:"exposeExternally"`
 }
 
 // AppStatus defines the observed state of App
 type AppStatus struct {
-	AvailableReplicas   int32 `json:"availableReplicas,omitempty"`
-	UnavailableReplicas int32 `json:"unavailableReplicas,omitempty"`
+	ExternalURL         string `json:"externalUrl,omitempty"`
+	AvailableReplicas   int32  `json:"availableReplicas,omitempty"`
+	UnavailableReplicas int32  `json:"unavailableReplicas,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="ExternalURL",type=string,JSONPath=`.status.externalUrl`
 // +kubebuilder:printcolumn:name="AvailableReplicas",type=integer,JSONPath=`.status.availableReplicas`
 // +kubebuilder:printcolumn:name="UnavailableReplicas",type=integer,JSONPath=`.status.unavailableReplicas`
 

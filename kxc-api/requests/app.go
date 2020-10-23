@@ -16,8 +16,9 @@ type Container struct {
 	Ports   []Port   `json:"ports,omitempty"`
 }
 
-// Port Object
+// Port object
 type Port struct {
-	Number   int32  `json:"number"`
-	Protocol string `json:"protocol"`
+	Number           int32  `json:"number"`
+	Protocol         string `json:"protocol"`
+	ExposeExternally bool   `json:"exposeExternally"`
 }

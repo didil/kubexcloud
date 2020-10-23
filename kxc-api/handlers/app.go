@@ -39,3 +39,28 @@ func (root *Root) HandleCreateApp(w http.ResponseWriter, r *http.Request) {
 
 	JSONOk(w, &struct{}{})
 }
+
+// HandleListApps lists apps
+func (root *Root) HandleListApps(w http.ResponseWriter, r *http.Request) {
+	projectName := chi.URLParam(r, "project")
+
+	// check if the project exists
+	project, err := root.ProjectSvc.Get(r.Context(), projectName)
+	if err != nil {
+		root.HandleError(w, r, err)
+		return
+	}
+	if project == nil {
+		root.HandleError(w, r, fmt.Errorf("project not found: %s", projectName))
+		return
+	}
+
+	respData, err := root.AppSvc.List(r.Context(), projectName)
+	if err != nil {
+		root.HandleError(w, r, err)
+		return
+	}
+
+	JSONOk(w, respData)
+
+}

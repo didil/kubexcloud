@@ -15,6 +15,7 @@ spec:
       ports:
         - number: 8080
           protocol: TCP
+          exposeExternally: true
     - image: hashicorp/http-echo
       name: http-2
       command: ["/http-echo","-listen=:9010", "-text='hello world 2'"]

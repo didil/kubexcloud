@@ -11,3 +11,6 @@ bin
 *.out
 
 *.code-workspace
+
+.env*
+!.env.example

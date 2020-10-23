@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -32,6 +33,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	netv1beta1 "k8s.io/api/networking/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -179,7 +181,65 @@ func (r *AppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{Requeue: true}, nil
 	}
 
-	// update status if necessary
+	if portToExpose := appPortToExposeExternally(app); portToExpose != nil {
+		// Check if the ingress does not already exist and create a new one
+		ingr := &netv1beta1.Ingress{}
+		err = r.Get(ctx, types.NamespacedName{Name: app.Name, Namespace: app.Namespace}, ingr)
+		if err != nil && errors.IsNotFound(err) {
+			// Define a new ingress
+			ingr, err := r.ingressForApp(app)
+			if err != nil {
+				log.Error(err, "Failed to build new ingress", "ingress.Namespace", ingr.Namespace, "ingress.Name", ingr.Name)
+				return ctrl.Result{}, err
+			}
+
+			log.Info("Creating a new ingress", "ingress.Namespace", ingr.Namespace, "ingress.Name", ingr.Name)
+			err = r.Create(ctx, ingr)
+			if err != nil {
+				log.Error(err, "Failed to create new ingress", "ingress.Namespace", ingr.Namespace, "ingress.Name", ingr.Name)
+				return ctrl.Result{}, err
+			}
+
+			// ingress created successfully - return and requeue
+			return ctrl.Result{Requeue: true}, nil
+		} else if err != nil {
+			log.Error(err, "Failed to get ingress")
+			return ctrl.Result{}, err
+		}
+
+		// update ingress if necessary
+		if len(ingr.Spec.Rules) > 0 && len(ingr.Spec.Rules[0].IngressRuleValue.HTTP.Paths) > 0 && ingr.Spec.Rules[0].IngressRuleValue.HTTP.Paths[0].Backend.ServicePort.IntVal != *portToExpose {
+			// update port
+			ingr.Spec.Rules[0].IngressRuleValue.HTTP.Paths[0].Backend.ServicePort = intstr.FromInt(int(*portToExpose))
+
+			log.Info("Updating ingress", "Ingress.Namespace", ingr.Namespace, "Ingress.Name", ingr.Name)
+
+			err = r.Update(ctx, ingr)
+			if err != nil {
+				log.Error(err, "Failed to update ingress", "Ingress.Namespace", ingr.Namespace, "Ingress.Name", ingr.Name)
+				return ctrl.Result{}, err
+			}
+
+			// Spec updated - return and requeue
+			return ctrl.Result{Requeue: true}, nil
+		}
+
+		// update app status (external url) if necessary
+		if app.Status.ExternalURL != appURL(app) {
+			app.Status.ExternalURL = appURL(app)
+
+			err := r.Status().Update(ctx, app)
+			if err != nil {
+				log.Error(err, "Failed to update app status")
+				return ctrl.Result{}, err
+			}
+
+			// Status updated - return and requeue
+			return ctrl.Result{Requeue: true}, nil
+		}
+	}
+
+	// update replicas status if necessary
 	if app.Status.AvailableReplicas != dep.Status.AvailableReplicas || app.Status.UnavailableReplicas != dep.Status.UnavailableReplicas {
 		app.Status.AvailableReplicas = dep.Status.AvailableReplicas
 		app.Status.UnavailableReplicas = dep.Status.UnavailableReplicas
@@ -189,6 +249,9 @@ func (r *AppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			log.Error(err, "Failed to update app status")
 			return ctrl.Result{}, err
 		}
+
+		// Status updated - return and requeue
+		return ctrl.Result{Requeue: true}, nil
 	}
 
 	return ctrl.Result{}, nil
@@ -350,6 +413,71 @@ func (r *AppReconciler) servicePortsEqual(ports, targetPorts []corev1.ServicePor
 	}
 
 	return true
+}
+
+func appPortToExposeExternally(app *cloudv1alpha1.App) *int32 {
+	// find the first tcp port to expose externally
+	for _, c := range app.Spec.Containers {
+		for _, p := range c.Ports {
+			if p.ExposeExternally && p.Protocol == corev1.ProtocolTCP {
+				return &p.Number
+			}
+		}
+	}
+
+	return nil
+}
+
+const defaultRootDomain = "127.0.0.1.xip.io"
+
+// ingressForApp returns an app Ingress object
+func (r *AppReconciler) ingressForApp(app *cloudv1alpha1.App) (*netv1beta1.Ingress, error) {
+	projectName := AppProjectName(app)
+	labels := LabelsForApp(projectName, app.Name)
+
+	port := appPortToExposeExternally(app)
+
+	ingr := &netv1beta1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      app.Name,
+			Namespace: app.Namespace,
+			Labels:    labels,
+		},
+		Spec: netv1beta1.IngressSpec{
+			Rules: []netv1beta1.IngressRule{
+				netv1beta1.IngressRule{
+					Host: appURLHost(app),
+					IngressRuleValue: netv1beta1.IngressRuleValue{
+						HTTP: &netv1beta1.HTTPIngressRuleValue{
+							Paths: []netv1beta1.HTTPIngressPath{
+								netv1beta1.HTTPIngressPath{
+									Backend: netv1beta1.IngressBackend{
+										ServiceName: app.Name,
+										ServicePort: intstr.FromInt(int(*port)),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// Set app instance as the owner and controller
+	err := ctrl.SetControllerReference(app, ingr, r.Scheme)
+	if err != nil {
+		return nil, err
+	}
+	return ingr, nil
+}
+
+func appURLHost(app *cloudv1alpha1.App) string {
+	return app.Name + "." + defaultRootDomain
+}
+
+func appURL(app *cloudv1alpha1.App) string {
+	return "http://" + appURLHost(app) + "/"
 }
 
 func (r *AppReconciler) SetupWithManager(mgr ctrl.Manager) error {

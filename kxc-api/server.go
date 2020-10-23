@@ -7,11 +7,21 @@ import (
 	"os"
 
 	"github.com/didil/kubexcloud/kxc-api/handlers"
+	"github.com/didil/kubexcloud/kxc-api/lib"
 	"github.com/didil/kubexcloud/kxc-api/services"
 )
 
 // StartServer starts the server
 func StartServer() error {
+	// try load env if .env file found
+	err := lib.LoadEnv(".env")
+	if err != nil {
+		// skip file not found errors to allow .env file to be optional
+		if err.Error() != fmt.Sprintf("open .env: no such file or directory") {
+			return fmt.Errorf("load env err: %v", err)
+		}
+	}
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8000"
