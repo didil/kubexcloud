@@ -9,4 +9,5 @@ type ListAppEntry struct {
 	Name                string `json:"name"`
 	AvailableReplicas   int32  `json:"availableReplicas"`
 	UnavailableReplicas int32  `json:"unavailableReplicas"`
+	ExternalURL         string `json:"externalUrl,omitempty"`
 }

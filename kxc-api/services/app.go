@@ -12,6 +12,7 @@ import (
 	"github.com/didil/kubexcloud/kxc-operator/controllers"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	validationutils "k8s.io/apimachinery/pkg/util/validation"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -19,6 +20,7 @@ import (
 
 type AppSvc interface {
 	Create(ctx context.Context, projectName string, reqData *requests.CreateApp) error
+	Update(ctx context.Context, projectName, appName string, reqData *requests.UpdateApp) error
 	List(ctx context.Context, projectName string) (*responses.ListApp, error)
 }
 
@@ -32,7 +34,7 @@ func NewAppService(k8sSvc K8sSvc) *AppService {
 	}
 }
 
-func (svc *AppService) validateApp(reqData *requests.CreateApp) error {
+func (svc *AppService) validateCreateApp(reqData *requests.CreateApp) error {
 	if reqData.Name == "" {
 		return fmt.Errorf("name is required")
 	}
@@ -47,7 +49,7 @@ func (svc *AppService) validateApp(reqData *requests.CreateApp) error {
 func (svc *AppService) Create(ctx context.Context, projectName string, reqData *requests.CreateApp) error {
 	client := svc.k8sSvc.Client()
 
-	err := svc.validateApp(reqData)
+	err := svc.validateCreateApp(reqData)
 	if err != nil {
 		return fmt.Errorf("app invalid: %v", err)
 	}
@@ -90,6 +92,44 @@ func (svc *AppService) Create(ctx context.Context, projectName string, reqData *
 	return nil
 }
 
+func (svc *AppService) Update(ctx context.Context, projectName, appName string, reqData *requests.UpdateApp) error {
+	client := svc.k8sSvc.Client()
+
+	app := &cloudv1alpha1.App{}
+	err := client.Get(ctx, types.NamespacedName{Name: appName, Namespace: controllers.ProjectNamespaceName(projectName)}, app)
+	if err != nil {
+		return fmt.Errorf("get app: %v", err)
+	}
+
+	app.Spec.Replicas = reqData.Replicas
+	app.Spec.Containers = []cloudv1alpha1.Container{}
+
+	for _, c := range reqData.Containers {
+		container := cloudv1alpha1.Container{
+			Image:   c.Image,
+			Name:    c.Name,
+			Command: c.Command,
+			Ports:   []cloudv1alpha1.Port{},
+		}
+
+		for _, p := range c.Ports {
+			container.Ports = append(container.Ports, cloudv1alpha1.Port{
+				Number:           p.Number,
+				Protocol:         corev1.Protocol(p.Protocol),
+				ExposeExternally: p.ExposeExternally,
+			})
+		}
+
+		app.Spec.Containers = append(app.Spec.Containers, container)
+	}
+
+	err = client.Update(ctx, app)
+	if err != nil {
+		return fmt.Errorf("create app: %v", err)
+	}
+	return nil
+}
+
 func (svc *AppService) List(ctx context.Context, projectName string) (*responses.ListApp, error) {
 	cl := svc.k8sSvc.Client()
 
@@ -108,6 +148,7 @@ func (svc *AppService) List(ctx context.Context, projectName string) (*responses
 	for _, app := range appList.Items {
 		respData.Apps = append(respData.Apps, responses.ListAppEntry{
 			Name:                app.Name,
+			ExternalURL:         app.Status.ExternalURL,
 			AvailableReplicas:   app.Status.AvailableReplicas,
 			UnavailableReplicas: app.Status.UnavailableReplicas,
 		})

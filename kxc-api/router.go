@@ -28,8 +28,10 @@ func BuildRouter(root *handlers.Root) *chi.Mux {
 
 			// POST /projects/:project/apps
 			r.Post("/{project}/apps", root.HandleCreateApp)
-			// Get /projects/:project/apps
+			// GET /projects/:project/apps
 			r.Get("/{project}/apps", root.HandleListApps)
+			// PUT /projects/:project/apps/:app
+			r.Put("/{project}/apps/{app}", root.HandleUpdateApp)
 		})
 	})
 

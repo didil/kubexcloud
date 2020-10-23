@@ -8,6 +8,13 @@ type CreateApp struct {
 	Containers []Container `json:"containers"`
 }
 
+// UpdateApp request
+type UpdateApp struct {
+	Replicas int32 `json:"replicas"`
+
+	Containers []Container `json:"containers"`
+}
+
 // Container object
 type Container struct {
 	Image   string   `json:"image"`
