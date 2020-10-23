@@ -45,7 +45,7 @@ type AppReconciler struct {
 // +kubebuilder:rbac:groups=cloud.kubexcloud.com,resources=apps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cloud.kubexcloud.com,resources=apps/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;
+// +kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
 
 func (r *AppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
@@ -67,17 +67,9 @@ func (r *AppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, err
 	}
 
-	// Check if the namespace exists
-	namespace := &corev1.Namespace{}
-	err = r.Get(ctx, types.NamespacedName{Name: ProjectNamespaceName(AppProjectName(app))}, namespace)
-	if err != nil {
-		log.Error(err, "Failed to get Namespace")
-		return ctrl.Result{}, err
-	}
-
 	// Check if the deployment already exists, if not create a new one
 	dep := &appsv1.Deployment{}
-	err = r.Get(ctx, types.NamespacedName{Name: app.Name, Namespace: namespace.Name}, dep)
+	err = r.Get(ctx, types.NamespacedName{Name: app.Name, Namespace: app.Namespace}, dep)
 	if err != nil && errors.IsNotFound(err) {
 		// Define a new deployment
 		dep, err := r.deploymentForApp(app)
@@ -143,7 +135,7 @@ func (r *AppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// Check if the service already exists, if not create a new one
 	svc := &corev1.Service{}
-	err = r.Get(ctx, types.NamespacedName{Name: app.Name, Namespace: namespace.Name}, svc)
+	err = r.Get(ctx, types.NamespacedName{Name: app.Name, Namespace: app.Namespace}, svc)
 	if err != nil && errors.IsNotFound(err) {
 		// Define a new service
 		svc, err := r.serviceForApp(app)
@@ -244,14 +236,13 @@ func AppProjectName(app *cloudv1alpha1.App) string {
 // deploymentForApp returns an app Deployment object
 func (r *AppReconciler) deploymentForApp(app *cloudv1alpha1.App) (*appsv1.Deployment, error) {
 	projectName := AppProjectName(app)
-	namespaceName := ProjectNamespaceName(projectName)
 	labels := LabelsForApp(projectName, app.Name)
 	replicas := app.Spec.Replicas
 
 	dep := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      app.Name,
-			Namespace: namespaceName,
+			Namespace: app.Namespace,
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -309,13 +300,12 @@ func LabelsForApp(projectName, appName string) map[string]string {
 // serviceForApp returns an app Service object
 func (r *AppReconciler) serviceForApp(app *cloudv1alpha1.App) (*corev1.Service, error) {
 	projectName := AppProjectName(app)
-	namespaceName := ProjectNamespaceName(projectName)
 	labels := LabelsForApp(projectName, app.Name)
 
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      app.Name,
-			Namespace: namespaceName,
+			Namespace: app.Namespace,
 			Labels:    labels,
 		},
 		Spec: corev1.ServiceSpec{

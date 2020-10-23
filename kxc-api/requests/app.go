@@ -3,7 +3,7 @@ package requests
 // CreateApp request
 type CreateApp struct {
 	Name     string `json:"name"`
-	Replicas int32  `json:"int"`
+	Replicas int32  `json:"replicas"`
 
 	Containers []Container `json:"containers"`
 }

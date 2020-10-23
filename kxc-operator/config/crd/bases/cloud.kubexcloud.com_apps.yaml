@@ -21,7 +21,7 @@ spec:
     listKind: AppList
     plural: apps
     singular: app
-  scope: Cluster
+  scope: Namespaced
   subresources:
     status: {}
   validation:

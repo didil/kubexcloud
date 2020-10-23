@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/didil/kubexcloud/kxc-api/requests"
@@ -20,9 +21,13 @@ func (root *Root) HandleCreateApp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// check if the project exists
-	_, err = root.ProjectSvc.Get(r.Context(), projectName)
+	project, err := root.ProjectSvc.Get(r.Context(), projectName)
 	if err != nil {
 		root.HandleError(w, r, err)
+		return
+	}
+	if project == nil {
+		root.HandleError(w, r, fmt.Errorf("project not found: %s", projectName))
 		return
 	}
 

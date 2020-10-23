@@ -64,7 +64,6 @@ type AppStatus struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:scope="Cluster"
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="AvailableReplicas",type=integer,JSONPath=`.status.availableReplicas`
 // +kubebuilder:printcolumn:name="UnavailableReplicas",type=integer,JSONPath=`.status.unavailableReplicas`

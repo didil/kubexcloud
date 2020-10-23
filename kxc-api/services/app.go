@@ -8,6 +8,7 @@ import (
 	"github.com/didil/kubexcloud/kxc-api/requests"
 
 	cloudv1alpha1 "github.com/didil/kubexcloud/kxc-operator/api/v1alpha1"
+	"github.com/didil/kubexcloud/kxc-operator/controllers"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	validationutils "k8s.io/apimachinery/pkg/util/validation"
@@ -49,7 +50,9 @@ func (svc *AppService) Create(ctx context.Context, projectName string, reqData *
 
 	app := &cloudv1alpha1.App{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: reqData.Name,
+			Name:      reqData.Name,
+			Namespace: controllers.ProjectNamespaceName(projectName),
+			Labels:    controllers.LabelsForApp(projectName, reqData.Name),
 		},
 		Spec: cloudv1alpha1.AppSpec{
 			Replicas:   reqData.Replicas,

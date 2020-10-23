@@ -2,6 +2,7 @@ apiVersion: cloud.kubexcloud.com/v1alpha1
 kind: App
 metadata:
   name: app-sample
+  namespace: kxc-proj-sample
   labels: 
     app: app-sample
     project_cr: sample

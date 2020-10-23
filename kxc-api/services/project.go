@@ -74,6 +74,9 @@ func (svc *ProjectService) Get(ctx context.Context, projectName string) (*cloudv
 
 	proj := &cloudv1alpha1.Project{}
 	err := client.Get(ctx, types.NamespacedName{Name: projectName}, proj)
+	if errors.IsNotFound(err) {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, fmt.Errorf("get project: %v", err)
 	}

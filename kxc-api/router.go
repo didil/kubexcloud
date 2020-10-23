@@ -26,7 +26,7 @@ func BuildRouter(root *handlers.Root) *chi.Mux {
 			// POST /projects
 			r.Post("/", root.HandleCreateProject)
 
-			// POST /:project/apps
+			// POST /projects/:project/apps
 			r.Post("/{project}/apps", root.HandleCreateApp)
 		})
 	})
