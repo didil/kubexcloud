@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"github.com/didil/kubexcloud/kxc-api/requests"
+	"github.com/didil/kubexcloud/kxc-api/responses"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	cloudv1alpha1 "github.com/didil/kubexcloud/kxc-operator/api/v1alpha1"
 	"github.com/didil/kubexcloud/kxc-operator/controllers"
@@ -18,6 +20,7 @@ import (
 type ProjectSvc interface {
 	Create(ctx context.Context, userName string, reqData *requests.CreateProject) error
 	Get(ctx context.Context, projectName string) (*cloudv1alpha1.Project, error)
+	List(ctx context.Context, userName string) (*responses.ListProject, error)
 }
 
 type ProjectService struct {
@@ -84,4 +87,28 @@ func (svc *ProjectService) Get(ctx context.Context, projectName string) (*cloudv
 	}
 
 	return proj, nil
+}
+
+func (svc *ProjectService) List(ctx context.Context, userName string) (*responses.ListProject, error) {
+	cl := svc.k8sSvc.Client()
+
+	projectList := &cloudv1alpha1.ProjectList{}
+	listOpts := []client.ListOption{
+		client.MatchingLabels(controllers.LabelsForProject(userName)),
+	}
+	if err := cl.List(ctx, projectList, listOpts...); err != nil {
+		return nil, fmt.Errorf("failed to list projects: %v", err)
+	}
+
+	respData := &responses.ListProject{
+		Projects: []responses.ListProjectEntry{},
+	}
+
+	for _, proj := range projectList.Items {
+		respData.Projects = append(respData.Projects, responses.ListProjectEntry{
+			Name: proj.Name,
+		})
+	}
+
+	return respData, nil
 }

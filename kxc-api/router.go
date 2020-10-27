@@ -34,6 +34,8 @@ func BuildRouter(root *handlers.Root) *chi.Mux {
 		})
 
 		r.With(authentication).Route("/projects", func(r chi.Router) {
+			// Get /v1/projects
+			r.Get("/", root.HandleListProjects)
 			// POST /v1/projects
 			r.Post("/", root.HandleCreateProject)
 

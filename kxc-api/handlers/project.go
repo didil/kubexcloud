@@ -26,3 +26,16 @@ func (root *Root) HandleCreateProject(w http.ResponseWriter, r *http.Request) {
 
 	JSONOk(w, &struct{}{})
 }
+
+// HandleListProjects lists projects
+func (root *Root) HandleListProjects(w http.ResponseWriter, r *http.Request) {
+	userName := r.Context().Value(CtxKey("userName")).(string)
+
+	respData, err := root.ProjectSvc.List(r.Context(), userName)
+	if err != nil {
+		root.HandleError(w, r, err)
+		return
+	}
+
+	JSONOk(w, respData)
+}
