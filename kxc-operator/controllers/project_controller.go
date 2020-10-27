@@ -125,6 +125,22 @@ func LabelsForNamespace(projectName string) map[string]string {
 
 const projectCRKey = "project_cr"
 
+const userAccountCRKey = "user_account_cr"
+
+// LabelsForProject returns the labels for a project
+func LabelsForProject(userName string) map[string]string {
+	return map[string]string{"app": "kxc", userAccountCRKey: userName}
+}
+
+// ProjectUserName returns the username for a project
+func ProjectUserName(project *cloudv1alpha1.Project) string {
+	if project == nil {
+		return ""
+	}
+
+	return project.Labels[userAccountCRKey]
+}
+
 func (r *ProjectReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&cloudv1alpha1.Project{}).

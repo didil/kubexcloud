@@ -27,10 +27,10 @@ func BuildRouter(root *handlers.Root) *chi.Mux {
 
 		r.Route("/users", func(r chi.Router) {
 			// POST /v1/users/login
-			mux.Post("/login", root.HandleLoginUser)
+			r.Post("/login", root.HandleLoginUser)
 
-			// POST /v1/users/create
-			mux.Post("/create", root.HandleCreateUser)
+			// POST /v1/users
+			r.Post("/", root.HandleCreateUser)
 		})
 
 		r.With(authentication).Route("/projects", func(r chi.Router) {

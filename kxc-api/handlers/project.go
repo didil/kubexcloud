@@ -8,6 +8,8 @@ import (
 
 // HandleCreateProject creates a project
 func (root *Root) HandleCreateProject(w http.ResponseWriter, r *http.Request) {
+	userName := r.Context().Value(CtxKey("userName")).(string)
+
 	reqData := &requests.CreateProject{}
 
 	err := readJSON(r, reqData)
@@ -16,7 +18,7 @@ func (root *Root) HandleCreateProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = root.ProjectSvc.Create(r.Context(), reqData)
+	err = root.ProjectSvc.Create(r.Context(), userName, reqData)
 	if err != nil {
 		root.HandleError(w, r, err)
 		return

@@ -8,6 +8,7 @@ import (
 	"github.com/didil/kubexcloud/kxc-api/requests"
 
 	cloudv1alpha1 "github.com/didil/kubexcloud/kxc-operator/api/v1alpha1"
+	"github.com/didil/kubexcloud/kxc-operator/controllers"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -15,7 +16,7 @@ import (
 )
 
 type ProjectSvc interface {
-	Create(ctx context.Context, reqData *requests.CreateProject) error
+	Create(ctx context.Context, userName string, reqData *requests.CreateProject) error
 	Get(ctx context.Context, projectName string) (*cloudv1alpha1.Project, error)
 }
 
@@ -41,7 +42,7 @@ func (svc *ProjectService) validateProject(reqData *requests.CreateProject) erro
 	return nil
 }
 
-func (svc *ProjectService) Create(ctx context.Context, reqData *requests.CreateProject) error {
+func (svc *ProjectService) Create(ctx context.Context, userName string, reqData *requests.CreateProject) error {
 	client := svc.k8sSvc.Client()
 
 	err := svc.validateProject(reqData)
@@ -51,7 +52,8 @@ func (svc *ProjectService) Create(ctx context.Context, reqData *requests.CreateP
 
 	proj := &cloudv1alpha1.Project{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: reqData.Name,
+			Name:   reqData.Name,
+			Labels: controllers.LabelsForProject(userName),
 		},
 	}
 

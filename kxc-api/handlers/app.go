@@ -5,12 +5,14 @@ import (
 	"net/http"
 
 	"github.com/didil/kubexcloud/kxc-api/requests"
+	"github.com/didil/kubexcloud/kxc-operator/controllers"
 	"github.com/go-chi/chi"
 )
 
 // HandleCreateApp creates an app
 func (root *Root) HandleCreateApp(w http.ResponseWriter, r *http.Request) {
 	projectName := chi.URLParam(r, "project")
+	userName := r.Context().Value(CtxKey("userName")).(string)
 
 	reqData := &requests.CreateApp{}
 
@@ -31,6 +33,11 @@ func (root *Root) HandleCreateApp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if controllers.ProjectUserName(project) != userName {
+		JSONError(w, "not authorized", http.StatusUnauthorized)
+		return
+	}
+
 	err = root.AppSvc.Create(r.Context(), projectName, reqData)
 	if err != nil {
 		root.HandleError(w, r, err)
@@ -43,6 +50,7 @@ func (root *Root) HandleCreateApp(w http.ResponseWriter, r *http.Request) {
 // HandleUpdateApp updates an app
 func (root *Root) HandleUpdateApp(w http.ResponseWriter, r *http.Request) {
 	projectName := chi.URLParam(r, "project")
+	userName := r.Context().Value(CtxKey("userName")).(string)
 	appName := chi.URLParam(r, "app")
 
 	reqData := &requests.UpdateApp{}
@@ -64,6 +72,11 @@ func (root *Root) HandleUpdateApp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if controllers.ProjectUserName(project) != userName {
+		JSONError(w, "not authorized", http.StatusUnauthorized)
+		return
+	}
+
 	err = root.AppSvc.Update(r.Context(), projectName, appName, reqData)
 	if err != nil {
 		root.HandleError(w, r, err)
@@ -76,6 +89,7 @@ func (root *Root) HandleUpdateApp(w http.ResponseWriter, r *http.Request) {
 // HandleListApps lists apps
 func (root *Root) HandleListApps(w http.ResponseWriter, r *http.Request) {
 	projectName := chi.URLParam(r, "project")
+	userName := r.Context().Value(CtxKey("userName")).(string)
 
 	// check if the project exists
 	project, err := root.ProjectSvc.Get(r.Context(), projectName)
@@ -85,6 +99,11 @@ func (root *Root) HandleListApps(w http.ResponseWriter, r *http.Request) {
 	}
 	if project == nil {
 		root.HandleError(w, r, fmt.Errorf("project not found: %s", projectName))
+		return
+	}
+
+	if controllers.ProjectUserName(project) != userName {
+		JSONError(w, "not authorized", http.StatusUnauthorized)
 		return
 	}
 
