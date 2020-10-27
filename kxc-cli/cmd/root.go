@@ -27,6 +27,9 @@ func Execute() error {
 	projectsCmd := buildProjectsCmd()
 	rootCmd.AddCommand(projectsCmd)
 
+	appsCmd := buildAppsCmd()
+	rootCmd.AddCommand(appsCmd)
+
 	err = rootCmd.Execute()
 	if err != nil {
 		return fmt.Errorf("execute: %v", err)
