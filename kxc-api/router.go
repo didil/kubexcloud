@@ -19,18 +19,29 @@ func BuildRouter(root *handlers.Root) *chi.Mux {
 	mux.Use(middleware.Recoverer)
 	mux.Use(middleware.Heartbeat("/ping"))
 
+	authentication := mid.Authentication(root)
+
 	// Routes
 
 	mux.Route("/v1", func(r chi.Router) {
-		r.Route("/projects", func(r chi.Router) {
-			// POST /projects
+
+		r.Route("/users", func(r chi.Router) {
+			// POST /v1/users/login
+			mux.Post("/login", root.HandleLoginUser)
+
+			// POST /v1/users/create
+			mux.Post("/create", root.HandleCreateUser)
+		})
+
+		r.With(authentication).Route("/projects", func(r chi.Router) {
+			// POST /v1/projects
 			r.Post("/", root.HandleCreateProject)
 
-			// POST /projects/:project/apps
+			// POST /v1projects/:project/apps
 			r.Post("/{project}/apps", root.HandleCreateApp)
-			// GET /projects/:project/apps
+			// GET /v1projects/:project/apps
 			r.Get("/{project}/apps", root.HandleListApps)
-			// PUT /projects/:project/apps/:app
+			// PUT /v1projects/:project/apps/:app
 			r.Put("/{project}/apps/{app}", root.HandleUpdateApp)
 		})
 	})

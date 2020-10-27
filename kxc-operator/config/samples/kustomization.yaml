@@ -2,4 +2,5 @@
 resources:
 - cloud_v1alpha1_project.yaml
 - cloud_v1alpha1_app.yaml
+- cloud_v1alpha1_useraccount.yaml
 # +kubebuilder:scaffold:manifestskustomizesamples

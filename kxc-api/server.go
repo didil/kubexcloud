@@ -35,10 +35,12 @@ func StartServer() error {
 
 	projectSvc := services.NewProjectService(k8sSvc)
 	appSvc := services.NewAppService(k8sSvc)
+	userSvc := services.NewUserService(k8sSvc)
 
 	root := &handlers.Root{
 		ProjectSvc: projectSvc,
 		AppSvc:     appSvc,
+		UserSvc:    userSvc,
 	}
 
 	log.Printf("Initializing router ...\n")

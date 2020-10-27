@@ -59,6 +59,26 @@ rules:
   - patch
   - update
 - apiGroups:
+  - cloud.kubexcloud.com
+  resources:
+  - useraccounts
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - cloud.kubexcloud.com
+  resources:
+  - useraccounts/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
   - ""
   resources:
   - namespaces

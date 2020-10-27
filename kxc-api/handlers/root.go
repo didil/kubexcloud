@@ -11,6 +11,7 @@ import (
 type Root struct {
 	ProjectSvc services.ProjectSvc
 	AppSvc     services.AppSvc
+	UserSvc    services.UserSvc
 }
 
 // HandleError handles errors

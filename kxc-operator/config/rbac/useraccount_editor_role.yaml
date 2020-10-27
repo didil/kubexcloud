@@ -1,0 +1,24 @@
+# permissions for end users to edit useraccounts.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: useraccount-editor-role
+rules:
+- apiGroups:
+  - cloud.kubexcloud.com
+  resources:
+  - useraccounts
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - cloud.kubexcloud.com
+  resources:
+  - useraccounts/status
+  verbs:
+  - get
