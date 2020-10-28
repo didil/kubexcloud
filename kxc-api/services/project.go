@@ -19,7 +19,7 @@ import (
 
 type ProjectSvc interface {
 	Create(ctx context.Context, userName string, reqData *requests.CreateProject) error
-	Get(ctx context.Context, projectName string) (*cloudv1alpha1.Project, error)
+	Get(ctx context.Context, userName, projectName string) (*responses.Project, error)
 	List(ctx context.Context, userName string) (*responses.ListProject, error)
 }
 
@@ -74,7 +74,28 @@ func (svc *ProjectService) Create(ctx context.Context, userName string, reqData 
 	return nil
 }
 
-func (svc *ProjectService) Get(ctx context.Context, projectName string) (*cloudv1alpha1.Project, error) {
+func (svc *ProjectService) Get(ctx context.Context, userName, projectName string) (*responses.Project, error) {
+	proj, err := svc.find(ctx, projectName)
+	if err != nil {
+		return nil, fmt.Errorf("find: %v", err)
+	}
+	if proj == nil {
+		return nil, nil
+	}
+
+	if controllers.ProjectUserName(proj) != userName {
+		// project doesn't exist for this user
+		return nil, nil
+	}
+
+	respData := &responses.Project{
+		Name: proj.Name,
+	}
+
+	return respData, nil
+}
+
+func (svc *ProjectService) find(ctx context.Context, projectName string) (*cloudv1alpha1.Project, error) {
 	client := svc.k8sSvc.Client()
 
 	proj := &cloudv1alpha1.Project{}

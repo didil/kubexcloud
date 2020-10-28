@@ -8,3 +8,7 @@ type ListProject struct {
 type ListProjectEntry struct {
 	Name string `json:"name"`
 }
+
+type Project struct {
+	Name string `json:"name"`
+}

@@ -39,12 +39,16 @@ func BuildRouter(root *handlers.Root) *chi.Mux {
 			// POST /v1/projects
 			r.Post("/", root.HandleCreateProject)
 
-			// POST /v1projects/:project/apps
-			r.Post("/{project}/apps", root.HandleCreateApp)
-			// GET /v1projects/:project/apps
-			r.Get("/{project}/apps", root.HandleListApps)
-			// PUT /v1projects/:project/apps/:app
-			r.Put("/{project}/apps/{app}", root.HandleUpdateApp)
+			r.Route("/{project}/apps", func(r chi.Router) {
+				// POST /v1/projects/:project/apps/:app/restart
+				r.Post("/{app}/restart", root.HandleRestartApp)
+				// POST /v1/projects/:project/apps
+				r.Post("/", root.HandleCreateApp)
+				// GET /v1/projects/:project/apps
+				r.Get("/", root.HandleListApps)
+				// PUT /v1/projects/:project/apps/:app
+				r.Put("/{app}", root.HandleUpdateApp)
+			})
 		})
 	})
 

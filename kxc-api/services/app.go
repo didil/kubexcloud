@@ -22,6 +22,7 @@ type AppSvc interface {
 	Create(ctx context.Context, projectName string, reqData *requests.CreateApp) error
 	Update(ctx context.Context, projectName, appName string, reqData *requests.UpdateApp) error
 	List(ctx context.Context, projectName string) (*responses.ListApp, error)
+	Restart(ctx context.Context, projectName, appName string) error
 }
 
 type AppService struct {
@@ -125,7 +126,7 @@ func (svc *AppService) Update(ctx context.Context, projectName, appName string, 
 
 	err = client.Update(ctx, app)
 	if err != nil {
-		return fmt.Errorf("create app: %v", err)
+		return fmt.Errorf("update app: %v", err)
 	}
 	return nil
 }
@@ -155,4 +156,22 @@ func (svc *AppService) List(ctx context.Context, projectName string) (*responses
 	}
 
 	return respData, nil
+}
+
+func (svc *AppService) Restart(ctx context.Context, projectName, appName string) error {
+	client := svc.k8sSvc.Client()
+
+	app := &cloudv1alpha1.App{}
+	err := client.Get(ctx, types.NamespacedName{Name: appName, Namespace: controllers.ProjectNamespaceName(projectName)}, app)
+	if err != nil {
+		return fmt.Errorf("get app: %v", err)
+	}
+
+	app.ObjectMeta.Annotations["cloud.kubexcloud.com/restartedAt"] = metav1.Now().String()
+
+	err = client.Update(ctx, app)
+	if err != nil {
+		return fmt.Errorf("restart app: %v", err)
+	}
+	return nil
 }
