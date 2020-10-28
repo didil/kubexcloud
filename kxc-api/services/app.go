@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/didil/kubexcloud/kxc-api/requests"
 	"github.com/didil/kubexcloud/kxc-api/responses"
@@ -167,7 +168,11 @@ func (svc *AppService) Restart(ctx context.Context, projectName, appName string)
 		return fmt.Errorf("get app: %v", err)
 	}
 
-	app.ObjectMeta.Annotations["cloud.kubexcloud.com/restartedAt"] = metav1.Now().String()
+	if app.ObjectMeta.Annotations == nil {
+		app.ObjectMeta.Annotations = map[string]string{}
+	}
+
+	app.ObjectMeta.Annotations[controllers.AppRestartAnnotationKey] = time.Now().UTC().Format(time.RFC3339)
 
 	err = client.Update(ctx, app)
 	if err != nil {

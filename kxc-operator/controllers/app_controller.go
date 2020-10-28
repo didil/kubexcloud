@@ -135,6 +135,26 @@ func (r *AppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{Requeue: true}, nil
 	}
 
+	// ensure the deployment template restart annotations are the same
+	if dep.Spec.Template.Annotations[AppRestartAnnotationKey] != app.Annotations[AppRestartAnnotationKey] {
+		if dep.Spec.Template.Annotations == nil {
+			dep.Spec.Template.Annotations = map[string]string{}
+		}
+		dep.Spec.Template.Annotations[AppRestartAnnotationKey] = app.Annotations[AppRestartAnnotationKey]
+
+		log.Info("Triggering deployment restart",
+			"Deployment.Namespace", dep.Namespace,
+			"Deployment.Name", dep.Name)
+
+		err = r.Update(ctx, dep)
+		if err != nil {
+			log.Error(err, "Failed to update Deployment containers", "Deployment.Namespace", dep.Namespace, "Deployment.Name", dep.Name)
+			return ctrl.Result{}, err
+		}
+		// Spec updated - return and requeue
+		return ctrl.Result{Requeue: true}, nil
+	}
+
 	// Check if the service already exists, if not create a new one
 	svc := &corev1.Service{}
 	err = r.Get(ctx, types.NamespacedName{Name: app.Name, Namespace: app.Namespace}, svc)
@@ -256,6 +276,8 @@ func (r *AppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	return ctrl.Result{}, nil
 }
+
+const AppRestartAnnotationKey = "cloud.kubexcloud.com/restartedAt"
 
 func (r *AppReconciler) containersEqual(containers, targetContainers []corev1.Container) bool {
 	if len(containers) != len(targetContainers) {
