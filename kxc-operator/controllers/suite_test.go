@@ -30,6 +30,8 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	ctrl "sigs.k8s.io/controller-runtime"
+
 	cloudv1alpha1 "github.com/didil/kubexcloud/kxc-operator/api/v1alpha1"
 	// +kubebuilder:scaffold:imports
 )
@@ -64,13 +66,34 @@ var _ = BeforeSuite(func(done Done) {
 
 	err = cloudv1alpha1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
-	err = cloudv1alpha1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:scheme
 
-	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
+	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
+		Scheme: scheme.Scheme,
+	})
 	Expect(err).ToNot(HaveOccurred())
+
+	err = (&ProjectReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("Project"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr)
+	Expect(err).ToNot(HaveOccurred())
+
+	err = (&AppReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("App"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr)
+	Expect(err).ToNot(HaveOccurred())
+
+	go func() {
+		err = mgr.Start(ctrl.SetupSignalHandler())
+		Expect(err).ToNot(HaveOccurred())
+	}()
+
+	k8sClient = mgr.GetClient()
 	Expect(k8sClient).ToNot(BeNil())
 
 	close(done)
