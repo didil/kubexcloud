@@ -9,8 +9,10 @@ import (
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	netv1beta1 "k8s.io/api/networking/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 var _ = Describe("App controller", func() {
@@ -73,6 +75,8 @@ var _ = Describe("App controller", func() {
 			}
 			Expect(k8sClient.Create(ctx, app)).Should(Succeed())
 
+			// check deployment
+
 			createdDeployment := &appsv1.Deployment{}
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, types.NamespacedName{Name: DeploymentName, Namespace: NamespaceName}, createdDeployment)
@@ -108,9 +112,83 @@ var _ = Describe("App controller", func() {
 			Expect(createdDeployment.OwnerReferences).Should(HaveLen(1))
 			Expect(createdDeployment.OwnerReferences[0].UID).Should(Equal(app.UID))
 
-			// add service test
+			// check service
+
+			createdService := &corev1.Service{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: DeploymentName, Namespace: NamespaceName}, createdService)
+				if err != nil {
+					return false
+				}
+				return true
+			}, timeout, interval).Should(BeTrue())
+
+			Expect(createdService.Labels).Should(Equal(map[string]string{
+				"app":        AppName,
+				"project_cr": ProjectName,
+			}))
+
+			Expect(createdService.Spec.Selector).Should(Equal(LabelsForApp(ProjectName, AppName)))
+			Expect(createdService.Spec.Type).Should(Equal(corev1.ServiceTypeClusterIP))
+			Expect(createdService.Spec.Ports).Should(Equal([]corev1.ServicePort{
+				corev1.ServicePort{
+					Protocol:   "TCP",
+					Port:       9123,
+					TargetPort: intstr.FromInt(9123),
+					Name:       "test-container-9123",
+				},
+			}))
+
+			Expect(createdService.OwnerReferences).Should(HaveLen(1))
+			Expect(createdService.OwnerReferences[0].UID).Should(Equal(app.UID))
 
 			// add ingress test
+
+			createdIngress := &netv1beta1.Ingress{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: DeploymentName, Namespace: NamespaceName}, createdIngress)
+				if err != nil {
+					return false
+				}
+				return true
+			}, timeout, interval).Should(BeTrue())
+
+			Expect(createdIngress.Labels).Should(Equal(map[string]string{
+				"app":        AppName,
+				"project_cr": ProjectName,
+			}))
+
+			Expect(createdIngress.Spec.Rules).Should(Equal([]netv1beta1.IngressRule{
+				netv1beta1.IngressRule{
+					Host: "test-app.127.0.0.1.xip.io",
+					IngressRuleValue: netv1beta1.IngressRuleValue{
+						HTTP: &netv1beta1.HTTPIngressRuleValue{
+							Paths: []netv1beta1.HTTPIngressPath{
+								netv1beta1.HTTPIngressPath{
+									Backend: netv1beta1.IngressBackend{
+										ServiceName: app.Name,
+										ServicePort: intstr.FromInt(9123),
+									},
+								},
+							},
+						},
+					},
+				},
+			}))
+
+			Expect(createdIngress.OwnerReferences).Should(HaveLen(1))
+			Expect(createdIngress.OwnerReferences[0].UID).Should(Equal(app.UID))
+
+			// check app status
+
+			Eventually(func() string {
+				app := &cloudv1alpha1.App{}
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: AppName, Namespace: NamespaceName}, app)
+				if err != nil {
+					return ""
+				}
+				return app.Status.ExternalURL
+			}, timeout, interval).Should(Equal("http://test-app.127.0.0.1.xip.io/"))
 		})
 
 		AfterEach(func() {
