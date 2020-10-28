@@ -10,9 +10,11 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/didil/kubexcloud/kxc-api/requests"
+	"github.com/didil/kubexcloud/kxc-api/responses"
 	cloudv1alpha1 "github.com/didil/kubexcloud/kxc-operator/api/v1alpha1"
 )
 
@@ -21,6 +23,7 @@ type UserSvc interface {
 	Login(ctx context.Context, userName, password string) (string, error)
 	Create(ctx context.Context, reqData *requests.CreateUser) error
 	HasRole(ctx context.Context, userName, role string) (bool, error)
+	List(ctx context.Context) (*responses.ListUser, error)
 }
 
 type UserService struct {
@@ -137,6 +140,29 @@ func (svc *UserService) HasRole(ctx context.Context, userName, role string) (boo
 	}
 
 	return user.Spec.Role == role, nil
+}
+
+func (svc *UserService) List(ctx context.Context) (*responses.ListUser, error) {
+	cl := svc.k8sSvc.Client()
+
+	userList := &cloudv1alpha1.UserAccountList{}
+	listOpts := []client.ListOption{}
+	if err := cl.List(ctx, userList, listOpts...); err != nil {
+		return nil, fmt.Errorf("failed to list users: %v", err)
+	}
+
+	respData := &responses.ListUser{
+		Users: []responses.ListUserEntry{},
+	}
+
+	for _, user := range userList.Items {
+		respData.Users = append(respData.Users, responses.ListUserEntry{
+			Name: user.Name,
+			Role: user.Spec.Role,
+		})
+	}
+
+	return respData, nil
 }
 
 // auth helpers

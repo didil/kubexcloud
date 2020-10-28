@@ -154,3 +154,53 @@ func (suite *UserTestSuite) Test_HandleCreateUser_NotAdmin() {
 
 	userSvc.AssertExpectations(suite.T())
 }
+
+func (suite *UserTestSuite) Test_HandleListUsers_Ok() {
+	userName := "adminUser"
+
+	token, err := auth.Login(userName)
+	suite.NoError(err)
+
+	userSvc := new(mocks.UserSvc)
+	userSvc.On("HasRole", mock.AnythingOfType("*context.valueCtx"), userName, services.UserRoleAdmin).Return(true, nil)
+
+	root := &handlers.Root{UserSvc: userSvc}
+
+	rawRespData := &responses.ListUser{
+		Users: []responses.ListUserEntry{
+			responses.ListUserEntry{
+				Name: "user-1",
+				Role: "regular",
+			},
+		},
+	}
+
+	userSvc.On("List", mock.AnythingOfType("*context.valueCtx")).Return(rawRespData, nil)
+
+	r := api.BuildRouter(root)
+	s := httptest.NewServer(r)
+	defer s.Close()
+
+	req, err := http.NewRequest(http.MethodGet, s.URL+"/v1/users", nil)
+	suite.NoError(err)
+
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := http.DefaultClient.Do(req)
+	suite.NoError(err)
+
+	defer resp.Body.Close()
+	suite.Equal(http.StatusOK, resp.StatusCode)
+	suite.Equal("application/json", resp.Header.Get("Content-Type"))
+
+	var respData *responses.ListUser
+	err = json.NewDecoder(resp.Body).Decode(&respData)
+	suite.NoError(err)
+
+	suite.Len(respData.Users, 1)
+	user_1 := respData.Users[0]
+	suite.Equal("user-1", user_1.Name)
+	suite.Equal("regular", user_1.Role)
+
+	userSvc.AssertExpectations(suite.T())
+}

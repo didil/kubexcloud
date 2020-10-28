@@ -47,3 +47,14 @@ func (root *Root) HandleCreateUser(w http.ResponseWriter, r *http.Request) {
 
 	JSONOk(w, &struct{}{})
 }
+
+// HandleListUsers lists users
+func (root *Root) HandleListUsers(w http.ResponseWriter, r *http.Request) {
+	respData, err := root.UserSvc.List(r.Context())
+	if err != nil {
+		root.HandleError(w, r, err)
+		return
+	}
+
+	JSONOk(w, respData)
+}

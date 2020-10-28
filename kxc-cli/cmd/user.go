@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/didil/kubexcloud/kxc-cli/client"
+	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 )
 
@@ -17,6 +19,9 @@ func buildUsersCmd() *cobra.Command {
 	usersCreateCmd := buildUsersCreateCmd()
 	usersCmd.AddCommand(usersCreateCmd)
 
+	usersListCmd := buildUsersListCmd()
+	usersCmd.AddCommand(usersListCmd)
+
 	return usersCmd
 }
 
@@ -25,7 +30,7 @@ func buildUsersCreateCmd() *cobra.Command {
 
 	var usersCreateCmd = &cobra.Command{
 		Use:   "create",
-		Short: "KubeXCloud Users Create",
+		Short: "KubeXCloud Users Create (admin only)",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if userName == "" {
 				return fmt.Errorf("username is empty")
@@ -63,6 +68,42 @@ func createUsersRun(userName, password, role string) error {
 	}
 
 	fmt.Printf("User created successfully\n")
+
+	return nil
+}
+
+func buildUsersListCmd() *cobra.Command {
+	var usersListCmd = &cobra.Command{
+		Use:   "list",
+		Short: "KubeXCloud Users List (admin only)",
+		Run: func(cmd *cobra.Command, args []string) {
+			err := listUsersRun()
+			if err != nil {
+				log.Fatalf("run: %v", err)
+			}
+		},
+	}
+
+	return usersListCmd
+}
+
+func listUsersRun() error {
+	cl := client.NewClient()
+
+	fmt.Printf("Fetching Users ...\n")
+
+	usersList, err := cl.ListUsers()
+	if err != nil {
+		return fmt.Errorf("list users: %v", err)
+	}
+
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader([]string{"Name", "Role"})
+
+	for _, user := range usersList.Users {
+		table.Append([]string{user.Name, user.Role})
+	}
+	table.Render()
 
 	return nil
 }
