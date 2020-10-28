@@ -6,7 +6,7 @@ import (
 	"github.com/didil/kubexcloud/kxc-api/services"
 )
 
-// Login: support function to fake login
+// Login is a support function to fake login
 func Login(username string) (string, error) {
 	if username == "" {
 		return "", fmt.Errorf("username empty")

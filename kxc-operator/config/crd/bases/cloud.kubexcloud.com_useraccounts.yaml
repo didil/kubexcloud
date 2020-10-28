@@ -8,6 +8,10 @@ metadata:
   creationTimestamp: null
   name: useraccounts.cloud.kubexcloud.com
 spec:
+  additionalPrinterColumns:
+  - JSONPath: .spec.role
+    name: Role
+    type: string
   group: cloud.kubexcloud.com
   names:
     kind: UserAccount
@@ -38,6 +42,14 @@ spec:
           properties:
             password:
               type: string
+            role:
+              enum:
+              - regular
+              - admin
+              type: string
+          required:
+          - password
+          - role
           type: object
         status:
           description: UserAccountStatus defines the observed state of UserAccount

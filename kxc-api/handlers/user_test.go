@@ -6,14 +6,15 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	api "github.com/didil/kubexcloud/kxc-api"
 	"github.com/didil/kubexcloud/kxc-api/handlers"
 	"github.com/didil/kubexcloud/kxc-api/requests"
 	"github.com/didil/kubexcloud/kxc-api/responses"
+	"github.com/didil/kubexcloud/kxc-api/services"
 	"github.com/didil/kubexcloud/kxc-api/testsupport"
+	"github.com/didil/kubexcloud/kxc-api/testsupport/auth"
 	"github.com/didil/kubexcloud/kxc-api/testsupport/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -72,17 +73,23 @@ func (suite *UserTestSuite) Test_HandleLoginUser_Ok() {
 }
 
 func (suite *UserTestSuite) Test_HandleCreateUser_Ok() {
+	userName := "adminUser"
+
+	token, err := auth.Login(userName)
+	suite.NoError(err)
+
 	userSvc := new(mocks.UserSvc)
+	userSvc.On("HasRole", mock.AnythingOfType("*context.valueCtx"), userName, services.UserRoleAdmin).Return(true, nil)
+
 	root := &handlers.Root{UserSvc: userSvc}
 
-	reqData := &requests.LoginUser{
+	reqData := &requests.CreateUser{
 		Name:     "test-user",
 		Password: "123456",
+		Role:     services.UserRoleRegular,
 	}
 
-	adminKey := os.Getenv("ADMIN_KEY")
-
-	userSvc.On("Create", mock.AnythingOfType("*context.valueCtx"), reqData.Name, reqData.Password).Return(nil)
+	userSvc.On("Create", mock.AnythingOfType("*context.valueCtx"), reqData).Return(nil)
 
 	r := api.BuildRouter(root)
 	s := httptest.NewServer(r)
@@ -94,7 +101,7 @@ func (suite *UserTestSuite) Test_HandleCreateUser_Ok() {
 	req, err := http.NewRequest(http.MethodPost, s.URL+"/v1/users", &b)
 	suite.NoError(err)
 
-	req.Header.Set("ADMIN_KEY", adminKey)
+	req.Header.Set("Authorization", "Bearer "+token)
 
 	resp, err := http.DefaultClient.Do(req)
 	suite.NoError(err)
@@ -106,6 +113,44 @@ func (suite *UserTestSuite) Test_HandleCreateUser_Ok() {
 	respData, err := ioutil.ReadAll(resp.Body)
 	suite.NoError(err)
 	suite.Equal("{}", string(respData))
+
+	userSvc.AssertExpectations(suite.T())
+}
+
+func (suite *UserTestSuite) Test_HandleCreateUser_NotAdmin() {
+	userName := "adminUser"
+
+	token, err := auth.Login(userName)
+	suite.NoError(err)
+
+	userSvc := new(mocks.UserSvc)
+	userSvc.On("HasRole", mock.AnythingOfType("*context.valueCtx"), userName, services.UserRoleAdmin).Return(false, nil)
+
+	root := &handlers.Root{UserSvc: userSvc}
+
+	reqData := &requests.CreateUser{
+		Name:     "test-user",
+		Password: "123456",
+		Role:     services.UserRoleRegular,
+	}
+
+	r := api.BuildRouter(root)
+	s := httptest.NewServer(r)
+	defer s.Close()
+
+	var b bytes.Buffer
+	json.NewEncoder(&b).Encode(reqData)
+
+	req, err := http.NewRequest(http.MethodPost, s.URL+"/v1/users", &b)
+	suite.NoError(err)
+
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := http.DefaultClient.Do(req)
+	suite.NoError(err)
+
+	defer resp.Body.Close()
+	suite.Equal(http.StatusUnauthorized, resp.StatusCode)
 
 	userSvc.AssertExpectations(suite.T())
 }

@@ -3,6 +3,7 @@ package api
 import (
 	"github.com/didil/kubexcloud/kxc-api/handlers"
 	mid "github.com/didil/kubexcloud/kxc-api/middleware"
+	"github.com/didil/kubexcloud/kxc-api/services"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 )
@@ -20,17 +21,19 @@ func BuildRouter(root *handlers.Root) *chi.Mux {
 	mux.Use(middleware.Heartbeat("/ping"))
 
 	authentication := mid.Authentication(root)
+	adminOnly := mid.Authorization(root, services.UserRoleAdmin)
 
 	// Routes
 
 	mux.Route("/v1", func(r chi.Router) {
 
-		r.Route("/users", func(r chi.Router) {
-			// POST /v1/users/login
-			r.Post("/login", root.HandleLoginUser)
+		// POST /v1/users/login
+		r.Post("/users/login", root.HandleLoginUser)
+
+		r.With(authentication).Route("/users", func(r chi.Router) {
 
 			// POST /v1/users
-			r.Post("/", root.HandleCreateUser)
+			r.With(adminOnly).Post("/", root.HandleCreateUser)
 		})
 
 		r.With(authentication).Route("/projects", func(r chi.Router) {

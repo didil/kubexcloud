@@ -80,6 +80,7 @@ func (suite *AppTestSuite) Test_HandleCreateApp_Ok() {
 
 func (suite *AppTestSuite) Test_HandleUpdateApp_Ok() {
 	userName := "test-user"
+
 	token, err := auth.Login(userName)
 	suite.NoError(err)
 

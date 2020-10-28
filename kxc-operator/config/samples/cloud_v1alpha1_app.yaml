@@ -11,9 +11,9 @@ spec:
   containers: 
     - image: hashicorp/http-echo
       name: http-1
-      command: ["/http-echo","-listen=:8080", "-text='hello world 1'"]
+      command: ["/http-echo","-listen=:8090", "-text='hello world 1'"]
       ports:
-        - number: 8080
+        - number: 8090
           protocol: TCP
           exposeExternally: true
     - image: hashicorp/http-echo

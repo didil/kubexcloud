@@ -25,7 +25,10 @@ import (
 
 // UserAccountSpec defines the desired state of UserAccount
 type UserAccountSpec struct {
-	Password string `json:"password,omitempty"`
+	Password string `json:"password"`
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Enum=regular;admin
+	Role string `json:"role"`
 }
 
 // UserAccountStatus defines the observed state of UserAccount
@@ -35,6 +38,7 @@ type UserAccountStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:scope="Cluster"
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Role",type=string,JSONPath=`.spec.role`
 
 // UserAccount is the Schema for the useraccounts API
 type UserAccount struct {

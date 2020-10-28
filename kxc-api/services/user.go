@@ -12,13 +12,15 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/didil/kubexcloud/kxc-api/requests"
 	cloudv1alpha1 "github.com/didil/kubexcloud/kxc-operator/api/v1alpha1"
 )
 
 // UserSvc interface
 type UserSvc interface {
 	Login(ctx context.Context, userName, password string) (string, error)
-	Create(ctx context.Context, userName, password string) error
+	Create(ctx context.Context, reqData *requests.CreateUser) error
+	HasRole(ctx context.Context, userName, role string) (bool, error)
 }
 
 type UserService struct {
@@ -34,7 +36,7 @@ func NewUserService(k8sSvc K8sSvc) *UserService {
 
 func (svc *UserService) Login(ctx context.Context, userName, password string) (string, error) {
 	// check if the user exists
-	user, err := svc.Get(ctx, userName)
+	user, err := svc.find(ctx, userName)
 	if err != nil {
 		return "", err
 
@@ -61,35 +63,44 @@ func (svc *UserService) Login(ctx context.Context, userName, password string) (s
 
 const minPasswordLength = 6
 
-func (svc *UserService) Create(ctx context.Context, userName, password string) error {
+const (
+	UserRoleRegular string = "regular"
+	UserRoleAdmin   string = "admin"
+)
+
+func (svc *UserService) Create(ctx context.Context, reqData *requests.CreateUser) error {
 	client := svc.k8sSvc.Client()
 
 	// check if the user exists
-	user, err := svc.Get(ctx, userName)
+	user, err := svc.find(ctx, reqData.Name)
 	if err != nil {
 		return err
-
 	}
 	if user != nil {
-		return fmt.Errorf("user already exists: %s", userName)
+		return fmt.Errorf("user already exists: %s", reqData.Name)
 	}
 
-	if len(password) < minPasswordLength {
+	if len(reqData.Password) < minPasswordLength {
 		return fmt.Errorf("password should be at least already %v chars long", minPasswordLength)
 	}
 
+	if reqData.Role != UserRoleRegular && reqData.Role != UserRoleAdmin {
+		return fmt.Errorf("unknown role: %s", reqData.Role)
+	}
+
 	// hash password
-	passwordHash, err := hashAndSalt([]byte(password))
+	passwordHash, err := hashAndSalt([]byte(reqData.Password))
 	if err != nil {
 		return err
 	}
 
 	user = &cloudv1alpha1.UserAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: userName,
+			Name: reqData.Name,
 		},
 		Spec: cloudv1alpha1.UserAccountSpec{
 			Password: passwordHash,
+			Role:     reqData.Role,
 		},
 	}
 
@@ -101,7 +112,7 @@ func (svc *UserService) Create(ctx context.Context, userName, password string) e
 	return nil
 }
 
-func (svc *UserService) Get(ctx context.Context, userName string) (*cloudv1alpha1.UserAccount, error) {
+func (svc *UserService) find(ctx context.Context, userName string) (*cloudv1alpha1.UserAccount, error) {
 	client := svc.k8sSvc.Client()
 
 	user := &cloudv1alpha1.UserAccount{}
@@ -110,11 +121,25 @@ func (svc *UserService) Get(ctx context.Context, userName string) (*cloudv1alpha
 		return nil, nil
 	}
 	if err != nil {
-		return nil, fmt.Errorf("get user: %v", err)
+		return nil, fmt.Errorf("find user: %v", err)
 	}
 
 	return user, nil
 }
+
+func (svc *UserService) HasRole(ctx context.Context, userName, role string) (bool, error) {
+	user, err := svc.find(ctx, userName)
+	if err != nil {
+		return false, err
+	}
+	if user == nil {
+		return false, fmt.Errorf("user doesn't exist: %s", userName)
+	}
+
+	return user.Spec.Role == role, nil
+}
+
+// auth helpers
 
 // hashAndSalt hashes and salts a password
 func hashAndSalt(pwd []byte) (string, error) {

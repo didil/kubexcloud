@@ -1,7 +1,7 @@
 apiVersion: cloud.kubexcloud.com/v1alpha1
 kind: UserAccount
 metadata:
-  name: useraccount-sample
+  name: sample-user
 spec:
-  # Add fields here
-  foo: bar
+  password: xyzxyz
+  role: regular

@@ -10,4 +10,5 @@ type LoginUser struct {
 type CreateUser struct {
 	Name     string `json:"name"`
 	Password string `json:"password"`
+	Role     string `json:"role"`
 }

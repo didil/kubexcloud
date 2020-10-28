@@ -72,6 +72,7 @@ func (suite *ProjectTestSuite) Test_HandleCreateProject_Ok() {
 
 func (suite *ProjectTestSuite) Test_HandleListProjects_Ok() {
 	userName := "test-user"
+
 	token, err := auth.Login(userName)
 	suite.NoError(err)
 

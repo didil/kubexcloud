@@ -5,6 +5,7 @@ package mocks
 import (
 	context "context"
 
+	requests "github.com/didil/kubexcloud/kxc-api/requests"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -13,18 +14,39 @@ type UserSvc struct {
 	mock.Mock
 }
 
-// Create provides a mock function with given fields: ctx, userName, password
-func (_m *UserSvc) Create(ctx context.Context, userName string, password string) error {
-	ret := _m.Called(ctx, userName, password)
+// Create provides a mock function with given fields: ctx, reqData
+func (_m *UserSvc) Create(ctx context.Context, reqData *requests.CreateUser) error {
+	ret := _m.Called(ctx, reqData)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
-		r0 = rf(ctx, userName, password)
+	if rf, ok := ret.Get(0).(func(context.Context, *requests.CreateUser) error); ok {
+		r0 = rf(ctx, reqData)
 	} else {
 		r0 = ret.Error(0)
 	}
 
 	return r0
+}
+
+// HasRole provides a mock function with given fields: ctx, userName, role
+func (_m *UserSvc) HasRole(ctx context.Context, userName string, role string) (bool, error) {
+	ret := _m.Called(ctx, userName, role)
+
+	var r0 bool
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) bool); ok {
+		r0 = rf(ctx, userName, role)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, userName, role)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // Login provides a mock function with given fields: ctx, userName, password

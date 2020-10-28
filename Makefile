@@ -10,6 +10,9 @@ k8s-deploy:
 run-kxc-api:
 	(cd kxc-api && go run cmd/main.go)
 
+run-kxc-api-bootstrap:
+	(cd kxc-api && go run cmd/main.go bootstrap)
+
 run-kxc-operator:
 	(cd kxc-operator && make run ENABLE_WEBHOOKS=false)
 

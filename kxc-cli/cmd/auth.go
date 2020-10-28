@@ -79,7 +79,7 @@ func authRun(apiURL, userName, password string) error {
 
 	fmt.Printf("Authenticating ...\n")
 
-	token, err := cl.Auth(apiURL, userName, password)
+	token, err := cl.LoginUser(apiURL, userName, password)
 	if err != nil {
 		return fmt.Errorf("auth: %v", err)
 	}

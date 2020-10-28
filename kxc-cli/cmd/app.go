@@ -22,6 +22,9 @@ func buildAppsCmd() *cobra.Command {
 	appsListCmd := buildAppsListCmd()
 	appsCmd.AddCommand(appsListCmd)
 
+	appRestartCmd := buildAppRestartCmd()
+	appsCmd.AddCommand(appRestartCmd)
+
 	return appsCmd
 }
 
@@ -67,6 +70,52 @@ func listAppsRun(projectName string) error {
 		table.Append([]string{proj.Name})
 	}
 	table.Render()
+
+	return nil
+}
+
+func buildAppRestartCmd() *cobra.Command {
+	var appsListCmd = &cobra.Command{
+		Use:   "restart <app>",
+		Short: "KubeXCloud Apps List",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			projectName, err := cmd.Flags().GetString("project")
+			if err != nil {
+				return err
+			}
+			if projectName == "" {
+				return fmt.Errorf("project name required")
+			}
+
+			if len(args) == 0 {
+				return fmt.Errorf("app name required")
+			}
+
+			appName := args[0]
+
+			err = restartAppRun(projectName, appName)
+			if err != nil {
+				log.Fatalf("run: %v", err)
+			}
+
+			return nil
+		},
+	}
+
+	return appsListCmd
+}
+
+func restartAppRun(projectName, appName string) error {
+	cl := client.NewClient()
+
+	fmt.Printf("Restarting App %s [Project %v] ...\n", appName, projectName)
+
+	err := cl.RestartApp(projectName, appName)
+	if err != nil {
+		return fmt.Errorf("restart app: %v", err)
+	}
+
+	fmt.Printf("App restart triggered successfully")
 
 	return nil
 }
