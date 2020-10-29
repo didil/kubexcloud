@@ -32,6 +32,8 @@ import (
 
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	ciliumv2 "github.com/cilium/cilium/pkg/k8s/apis/cilium.io/v2"
+
 	cloudv1alpha1 "github.com/didil/kubexcloud/kxc-operator/api/v1alpha1"
 	// +kubebuilder:scaffold:imports
 )
@@ -65,6 +67,9 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(cfg).ToNot(BeNil())
 
 	err = cloudv1alpha1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
+	err = ciliumv2.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:scheme

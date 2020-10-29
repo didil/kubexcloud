@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -495,7 +496,11 @@ func (r *AppReconciler) ingressForApp(app *cloudv1alpha1.App) (*netv1beta1.Ingre
 }
 
 func appURLHost(app *cloudv1alpha1.App) string {
-	return app.Name + "." + defaultRootDomain
+	rootDomain := os.Getenv("ROOT_DOMAIN")
+	if rootDomain == "" {
+		rootDomain = defaultRootDomain
+	}
+	return app.Name + "." + rootDomain
 }
 
 func appURL(app *cloudv1alpha1.App) string {

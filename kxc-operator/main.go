@@ -18,6 +18,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -27,6 +28,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	ciliumv2 "github.com/cilium/cilium/pkg/k8s/apis/cilium.io/v2"
+	"github.com/didil/kubexcloud/kxc-api/lib"
 	cloudv1alpha1 "github.com/didil/kubexcloud/kxc-operator/api/v1alpha1"
 	"github.com/didil/kubexcloud/kxc-operator/controllers"
 	// +kubebuilder:scaffold:imports
@@ -39,12 +42,22 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-
+	utilruntime.Must(ciliumv2.AddToScheme(scheme))
 	utilruntime.Must(cloudv1alpha1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
 func main() {
+	// try load env if .env file found
+	err := lib.LoadEnv(".env")
+	if err != nil {
+		// skip file not found errors to allow .env file to be optional
+		if err.Error() != fmt.Sprintf("open .env: no such file or directory") {
+			setupLog.Error(err, "unable to load env")
+			os.Exit(1)
+		}
+	}
+
 	var metricsAddr string
 	var enableLeaderElection bool
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
