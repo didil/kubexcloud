@@ -169,13 +169,11 @@ func (r *ProjectReconciler) ciliumNetworkPolicyForProject(project *cloudv1alpha1
 				Ingress: []ciliumpolicyapi.IngressRule{
 					ciliumpolicyapi.IngressRule{
 						FromEndpoints: []ciliumpolicyapi.EndpointSelector{
-							ciliumpolicyapi.EndpointSelector{
-								LabelSelector: &ciliumslimmetav1.LabelSelector{
-									MatchLabels: map[string]string{
-										"k8s:io.kubernetes.pod.namespace": namespaceName,
-									},
+							ciliumpolicyapi.NewESFromK8sLabelSelector("k8s.", &ciliumslimmetav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"io.kubernetes.pod.namespace": namespaceName,
 								},
-							},
+							}),
 						},
 					},
 				},
@@ -190,13 +188,11 @@ func (r *ProjectReconciler) ciliumNetworkPolicyForProject(project *cloudv1alpha1
 				Ingress: []ciliumpolicyapi.IngressRule{
 					ciliumpolicyapi.IngressRule{
 						FromEndpoints: []ciliumpolicyapi.EndpointSelector{
-							ciliumpolicyapi.EndpointSelector{
-								LabelSelector: &ciliumslimmetav1.LabelSelector{
-									MatchLabels: map[string]string{
-										"k8s:io.kubernetes.pod.namespace": ingressControllerNamespaceName,
-									},
+							ciliumpolicyapi.NewESFromK8sLabelSelector("k8s.", &ciliumslimmetav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"io.kubernetes.pod.namespace": ingressControllerNamespaceName,
 								},
-							},
+							}),
 						},
 					},
 				},
