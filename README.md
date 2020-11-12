@@ -1,6 +1,6 @@
 ## KubeXCloud
 
-KubeXCloud (KXC) is a minimalist self service cloud platform built on top of Kubernetes. Built with Go.
+KubeXCloud (KXC) is a minimalist self service cloud platform built on top of Kubernetes. Built with Go and Operator SDK.
 
 **THIS SOFTWARE IS WORK IN PROGRESS / ALPHA RELEASE AND IS NOT MEANT FOR USAGE IN PRODUCTION SYSTEMS**
 
@@ -14,6 +14,6 @@ KubeXCloud (KXC) is a minimalist self service cloud platform built on top of Kub
 
 ### Architecture
 - KXC API server: receives REST requests and interacts with the Kubernetes API server to create Custom Resources
-- KXC Operator/Controllers: monitors Custom Resources created by the KXC API server and reconciliates the internal Kubernetes resources (deployments/services/etc)
+- KXC Operator/Controllers: Kubernetes Operators monitor Custom Resources created by the KXC API server and reconciliate the internal Kubernetes resources (deployments/services/etc)
 - KXC CLI: command line tool to interact with the KXC API server 
 
