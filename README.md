@@ -2,11 +2,14 @@
 
 KubeXCloud (KXC) is a minimalist self service cloud platform built on top of Kubernetes
 
+**THIS SOFTWARE IS WORK IN PROGRESS / ALPHA RELEASE AND IS NOT MEANT FOR USAGE IN PRODUCTION SYSTEMS**
+
 ### Features
 - Deploy anywhere you can host a Kubernetes cluster
 - Users management
-- Launch containers
-- Launch in-cluster db instances (planned feature)
+- Launch apps
+- Groups apps within projects
+- Isolate projects from each other
 - Expose apps via http/https  
 
 ### Architecture
